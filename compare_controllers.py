@@ -50,7 +50,7 @@ def run_simulation(Kp, Ki, Kd, h0, r0, b0, beta01, beta02, beta03, k1, k2, alpha
         # Determine if a disturbance should be applied (5% chance)
         if np.random.rand() < disturbance_probability and i > disturbance_until_time:  # Apply disturbance if not locked
             disturbance_length = np.random.randint(1/dt * 5, 1/dt * 15)  # Random disturbance length
-            disturbance[i:i + disturbance_length] = np.random.normal(-0.5, 0.5)  # Apply disturbance
+            disturbance[i:i + disturbance_length] = np.random.normal(-2,  2)  # Apply disturbance
             disturbance_until_time = i + disturbance_length
         elif i > disturbance_until_time:
             disturbance[i] = 0  # No disturbance applied
@@ -140,9 +140,8 @@ def main():
     Kp, Ki, Kd = 35, 2.5, 45
 
     h0, r0, b0 = 0.01, 1, 1
-    beta01, beta02, beta03 = 1, 1/(2*0.01**0.5), 2/(25*0.01**1.2)
-    k1, k2, alpha1, alpha2 = 0.1, 0.2, 0.3, 0.1
-
+    beta01, beta02, beta03 = 1, 0.62, 20
+    k1, k2, alpha1, alpha2 = 0.04, 0.05, 0.3, 0.1
 
     # Initial simulation run with default values
     time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, mse_pid, mse_adrc = run_simulation(
@@ -156,15 +155,15 @@ def main():
     pos_adrc_plot, = ax1.plot(time, position_adrc, label=f"Ship Position (ADRC Control) \nMSE: {mse_adrc:.3f}")
     setpoint_plot, = ax1.plot(time, setpoint, color='0', linestyle=':', label="Setpoint (Step to 1 at t=10s)")
     ax1.set_title('Ship Position vs Setpoint')
-    ax1.set_ylabel('Position')
+    ax1.set_ylabel('Position [m]')
     ax1.legend()
 
     # Plot control signals and disturbance
     pid_signal_plot, = ax2.plot(time, pid_control_signal, label="PID Control Signal")
     adrc_signal_plot, = ax2.plot(time, adrc_control_signal, label="ADRC Control Signal", linestyle='--')
     disturbance_plot, = ax2.plot(time, disturbance, label="Disturbance", linestyle="dotted")
-    ax2.set_title('Control Signals')
-    ax2.set_ylabel('Signal')
+    ax2.set_title('Control Signals and Disturbances')
+    ax2.set_ylabel('Force [N]')
     ax2.set_xlabel('Time (s)')
     ax2.legend()
 
@@ -192,13 +191,13 @@ def main():
     adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.1, 10.0, valinit=b0)
 
     ax_beta01 = plt.axes([0.74, 0.55, 0.22, 0.05])
-    adrc_beta01_slider = Slider(ax_beta01, 'ADRC beta01', 0.1, 5.0, valinit=beta01)
+    adrc_beta01_slider = Slider(ax_beta01, 'ADRC beta01', 0.01, 10.0, valinit=beta01)
 
     ax_beta02 = plt.axes([0.74, 0.5, 0.22, 0.05])
-    adrc_beta02_slider = Slider(ax_beta02, 'ADRC beta02', 0.1, 10, valinit=beta02)
+    adrc_beta02_slider = Slider(ax_beta02, 'ADRC beta02', 0.1, 20, valinit=beta02)
 
     ax_beta03 = plt.axes([0.74, 0.45, 0.22, 0.05])
-    adrc_beta03_slider = Slider(ax_beta03, 'ADRC beta03', 0.1, 30, valinit=beta03)
+    adrc_beta03_slider = Slider(ax_beta03, 'ADRC beta03', 0.1, 60, valinit=beta03)
 
     ax_k1 = plt.axes([0.74, 0.4, 0.22, 0.05])
     adrc_k1_slider = Slider(ax_k1, 'ADRC k1', 0.01, 1.0, valinit=k1)
@@ -222,6 +221,12 @@ def main():
     adrc_b0_slider.on_changed(update)
     adrc_beta01_slider.on_changed(update)
     adrc_beta02_slider.on_changed(update)
+    adrc_beta03_slider.on_changed(update)
+
+    adrc_k1_slider.on_changed(update)
+    adrc_k2_slider.on_changed(update)
+    adrc_alpha1_slider.on_changed(update)
+    adrc_alpha2_slider.on_changed(update)
 
     plt.show()
 
