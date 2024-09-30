@@ -9,13 +9,13 @@ class PIDController:
         Ki (float): Integral gain.
         Kd (float): Derivative gain.
         setpoint (float): Desired setpoint.
-        max_control (float): Maximum control signal.
-        min_control (float): Minimum control signal.
+        max_u (float): Maximum control signal.
+        min_u (float): Minimum control signal.
         prev_error (float): Previous error value.
         integral (float): Integral of the error.
     """
 
-    def __init__(self, Kp, Ki, Kd, setpoint=0):
+    def __init__(self, Kp, Ki, Kd, setpoint=0, max_u=float('inf'), min_u=float('-inf')):
         """
         Initialize the PIDController with given parameters.
 
@@ -24,13 +24,15 @@ class PIDController:
             Ki (float): Integral gain.
             Kd (float): Derivative gain.
             setpoint (float): Desired setpoint.
-            max_control (float): Maximum control signal.
-            min_control (float): Minimum control signal.
+            max_u (float): Maximum control signal limit.
+            min_u (float): Minimum control signal limit.
         """
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
         self.setpoint = setpoint
+        self.max_u = max_u
+        self.min_u = min_u
         self.prev_error = 0
         self.integral = 0
 
@@ -58,5 +60,7 @@ class PIDController:
         # Control signal before saturation
         control_signal = P + I + D
 
-        return control_signal
+        # Apply control signal limits
+        control_signal = np.clip(control_signal, self.min_u, self.max_u)
 
+        return control_signal

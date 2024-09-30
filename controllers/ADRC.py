@@ -17,10 +17,30 @@ class ADRCController:
         k2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
         alpha1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
         alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+        max_u (float): Maximum control signal limit.
+        min_u (float): Minimum control signal limit.
     """
 
-    def __init__(self, setpoint=0, h0=0.001, r0=1, b0=5, beta01=0, beta02=0, beta03=0, k1=0, k2=0, alpha1=0, alpha2=0):
-        # Controller setpoint
+    def __init__(self, setpoint=0, h0=0.001, r0=1, b0=5, beta01=0, beta02=0, beta03=0, 
+                 k1=0, k2=0, alpha1=0, alpha2=0, max_u=float('inf'), min_u=float('-inf')):
+        """
+        Initialize the ADRCController with given parameters.
+
+        Args:
+            setpoint (float): Controller setpoint.
+            h0 (float): Filter factor for tracking differentiator.
+            r0 (float): Tracking speed for tracking differentiator.
+            b0 (float): Control coefficient.
+            beta01 (float): Parameter for the Extended State Observer (ESO).
+            beta02 (float): Parameter for the Extended State Observer (ESO).
+            beta03 (float): Parameter for the Extended State Observer (ESO).
+            k1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+            k2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+            alpha1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+            alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+            max_u (float): Maximum control signal limit.
+            min_u (float): Minimum control signal limit.
+        """
         self.setpoint = setpoint
         self.h = 0  # Timestep
 
@@ -44,6 +64,10 @@ class ADRCController:
         self.k2 = k2
         self.alpha1 = alpha1
         self.alpha2 = alpha2
+
+        # Control limits
+        self.max_u = max_u
+        self.min_u = min_u
 
         # Remember last control signal to compute ESO
         self._last_control_signal = 0
@@ -156,7 +180,9 @@ class ADRCController:
         self._update_tracking_differentiator(self.setpoint)  # Update tracking differentiator
         control_signal = self._compute_nlsef()  # Compute the control signal using NLSEF
 
+        # Apply control signal limits
+        control_signal = np.clip(control_signal, self.min_u, self.max_u)
+
         self._last_control_signal = control_signal  # Save the last control signal for the next ESO update
 
         return control_signal
-
