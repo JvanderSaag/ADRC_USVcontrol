@@ -195,62 +195,83 @@ def update(val: float) -> None:
 
 # Plotting and GUI setup
 if __name__ == "__main__":
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    # Initial values
+    tau_propeller = 0
+    Kp, Ki, Kd = 35, 2.5, 45
+    h0, r0, b0 = 0.01, 1, 1
+    beta01, beta02, beta03 = 1, 0.62, 20
+    k1, k2, alpha1, alpha2 = 0.04, 0.05, 0.3, 0.1
 
-    # Initial run with default values
-    run_simulation(Kp=1.0, Ki=0.5, Kd=0.1, h0=0.1, r0=0.1, b0=0.1, beta01=1.0, beta02=1.0, beta03=1.0,
-                   k1=1.0, k2=1.0, alpha1=1.0, alpha2=1.0)
+    # Initial simulation run with default values
+    time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, mse_pid, mse_adrc = run_simulation(
+        Kp=Kp, Ki=Ki, Kd=Kd, h0=h0, r0=r0, b0=b0, beta01=beta01, beta02=beta02, beta03=beta03, k1=k1, k2=k2, alpha1=alpha1, alpha2=alpha2, tau_propeller=tau_propeller)
 
-    pos_pid_plot, = ax1.plot([], [], label='Ship Position (PID Control)')
-    pos_adrc_plot, = ax1.plot([], [], label='Ship Position (ADRC Control)')
-    setpoint_plot, = ax1.plot([], [], 'k--', label='Setpoint')
-    ax1.set_title('Ship Position Control')
-    ax1.set_xlabel('Time (s)')
-    ax1.set_ylabel('Position')
-    ax1.grid()
+    # Create the figure and the plot
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+    # Plot ship positions
+    pos_pid_plot, = ax1.plot(time, position_pid, label=f"Ship Position (PID Control) \nMSE: {mse_pid:.3f}")
+    pos_adrc_plot, = ax1.plot(time, position_adrc, label=f"Ship Position (ADRC Control) \nMSE: {mse_adrc:.3f}")
+    setpoint_plot, = ax1.plot(time, setpoint, color='0', linestyle=':', label="Setpoint (Step to 1 at t=10s)")
+    ax1.set_title('Ship Position vs Setpoint')
+    ax1.set_ylabel('Position [m]')
     ax1.legend()
 
-    pid_signal_plot, = ax2.plot([], [], label='PID Control Signal')
-    adrc_signal_plot, = ax2.plot([], [], label='ADRC Control Signal')
-    disturbance_plot, = ax2.plot([], [], 'r--', label='Disturbance')
-    ax2.set_title('Control Signals')
+    # Plot control signals and disturbance
+    pid_signal_plot, = ax2.plot(time, pid_control_signal, label="PID Control Signal")
+    adrc_signal_plot, = ax2.plot(time, adrc_control_signal, label="ADRC Control Signal", linestyle='--')
+    disturbance_plot, = ax2.plot(time, disturbance, label="Disturbance", linestyle="dotted")
+    ax2.set_title('Control Signals and Disturbances')
+    ax2.set_ylabel('Force [N]')
     ax2.set_xlabel('Time (s)')
-    ax2.set_ylabel('Control Signal')
-    ax2.grid()
     ax2.legend()
 
-    # Slider configuration for PID gains
-    axcolor = 'lightgoldenrodyellow'
-    ax_Kp = plt.axes([0.1, 0.9, 0.65, 0.03], facecolor=axcolor)
-    ax_Ki = plt.axes([0.1, 0.85, 0.65, 0.03], facecolor=axcolor)
-    ax_Kd = plt.axes([0.1, 0.8, 0.65, 0.03], facecolor=axcolor)
-    ax_h0 = plt.axes([0.1, 0.75, 0.65, 0.03], facecolor=axcolor)
-    ax_r0 = plt.axes([0.1, 0.7, 0.65, 0.03], facecolor=axcolor)
-    ax_b0 = plt.axes([0.1, 0.65, 0.65, 0.03], facecolor=axcolor)
-    ax_beta01 = plt.axes([0.1, 0.6, 0.65, 0.03], facecolor=axcolor)
-    ax_beta02 = plt.axes([0.1, 0.55, 0.65, 0.03], facecolor=axcolor)
-    ax_beta03 = plt.axes([0.1, 0.5, 0.65, 0.03], facecolor=axcolor)
-    ax_k1 = plt.axes([0.1, 0.45, 0.65, 0.03], facecolor=axcolor)
-    ax_k2 = plt.axes([0.1, 0.4, 0.65, 0.03], facecolor=axcolor)
-    ax_alpha1 = plt.axes([0.1, 0.35, 0.65, 0.03], facecolor=axcolor)
-    ax_alpha2 = plt.axes([0.1, 0.3, 0.65, 0.03], facecolor=axcolor)
-    ax_tau_propeller = plt.axes([0.1, 0.25, 0.65, 0.03], facecolor=axcolor)
+    # Adjust layout to fit the sliders
+    plt.subplots_adjust(top=0.96, bottom=0.07, left=0.05, right=0.7, hspace=0.15) 
 
-    pid_Kp_slider = Slider(ax_Kp, 'Kp', 0.0, 2.0, valinit=1.0)
-    pid_Ki_slider = Slider(ax_Ki, 'Ki', 0.0, 1.0, valinit=0.5)
-    pid_Kd_slider = Slider(ax_Kd, 'Kd', 0.0, 1.0, valinit=0.1)
-    
-    adrc_h0_slider = Slider(ax_h0, 'h0', 0.0, 2.0, valinit=0.1)
-    adrc_r0_slider = Slider(ax_r0, 'r0', 0.0, 2.0, valinit=0.1)
-    adrc_b0_slider = Slider(ax_b0, 'b0', 0.0, 2.0, valinit=0.1)
-    adrc_beta01_slider = Slider(ax_beta01, 'beta01', 0.0, 5.0, valinit=1.0)
-    adrc_beta02_slider = Slider(ax_beta02, 'beta02', 0.0, 5.0, valinit=1.0)
-    adrc_beta03_slider = Slider(ax_beta03, 'beta03', 0.0, 5.0, valinit=1.0)
-    adrc_k1_slider = Slider(ax_k1, 'k1', 0.0, 5.0, valinit=1.0)
-    adrc_k2_slider = Slider(ax_k2, 'k2', 0.0, 5.0, valinit=1.0)
-    adrc_alpha1_slider = Slider(ax_alpha1, 'alpha1', 0.0, 5.0, valinit=1.0)
-    adrc_alpha2_slider = Slider(ax_alpha2, 'alpha2', 0.0, 5.0, valinit=1.0)
-    tau_propeller_slider = Slider(ax_tau_propeller, 'Tau Propeller', 0.0, 5.0, valinit=0)
+    # Slider configuration
+    ax_tau = plt.axes([0.74, 0.9, 0.22, 0.05])  
+    tau_propeller_slider = Slider(ax_tau, 'Tau (linear)', 0, 2.0, valinit=tau_propeller)
+
+    ax_Kp = plt.axes([0.74, 0.85, 0.22, 0.05]) 
+    pid_Kp_slider = Slider(ax_Kp, 'PID Kp', 0.1, 40.0, valinit=Kp)
+
+    ax_Ki = plt.axes([0.74, 0.8, 0.22, 0.05])
+    pid_Ki_slider = Slider(ax_Ki, 'PID Ki', 0.01, 10.0, valinit=Ki)
+
+    ax_Kd = plt.axes([0.74, 0.75, 0.22, 0.05])
+    pid_Kd_slider = Slider(ax_Kd, 'PID Kd', 1, 100.0, valinit=Kd)
+
+    ax_h0 = plt.axes([0.74, 0.7, 0.22, 0.05])
+    adrc_h0_slider = Slider(ax_h0, 'ADRC h0', 0.01, 0.1, valinit=h0)
+
+    ax_r0 = plt.axes([0.74, 0.65, 0.22, 0.05])
+    adrc_r0_slider = Slider(ax_r0, 'ADRC r0', 0.1, 10.0, valinit=r0)
+
+    ax_b0 = plt.axes([0.74, 0.6, 0.22, 0.05])
+    adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.001, 10.0, valinit=b0)
+
+    ax_beta01 = plt.axes([0.74, 0.55, 0.22, 0.05])
+    adrc_beta01_slider = Slider(ax_beta01, 'ADRC beta01', 0.01, 10.0, valinit=beta01)
+
+    ax_beta02 = plt.axes([0.74, 0.5, 0.22, 0.05])
+    adrc_beta02_slider = Slider(ax_beta02, 'ADRC beta02', 0.1, 20, valinit=beta02)
+
+    ax_beta03 = plt.axes([0.74, 0.45, 0.22, 0.05])
+    adrc_beta03_slider = Slider(ax_beta03, 'ADRC beta03', 0.1, 60, valinit=beta03)
+
+    ax_k1 = plt.axes([0.74, 0.4, 0.22, 0.05])
+    adrc_k1_slider = Slider(ax_k1, 'ADRC k1', 0.1, 5.0, valinit=k1)
+
+    ax_k2 = plt.axes([0.74, 0.35, 0.22, 0.05])
+    adrc_k2_slider = Slider(ax_k2, 'ADRC k2', 0.1, 10.0, valinit=k2)
+
+    ax_alpha1 = plt.axes([0.74, 0.3, 0.22, 0.05])
+    adrc_alpha1_slider = Slider(ax_alpha1, 'ADRC alpha1', 0.001, 3.0, valinit=alpha1)
+
+    ax_alpha2 = plt.axes([0.74, 0.25, 0.22, 0.05])
+    adrc_alpha2_slider = Slider(ax_alpha2, 'ADRC alpha2', 0.001, 3.0, valinit=alpha2)
+
 
     # Link slider updates to the update function
     for slider in [
