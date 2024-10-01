@@ -7,6 +7,7 @@ class ADRCController:
 
     Attributes:
         setpoint (float): Controller setpoint.
+        h (float): Timestep duration.
         h0 (float): Filter factor for the tracking differentiator.
         r0 (float): Tracking speed for the tracking differentiator.
         b0 (float): Control coefficient.
@@ -21,8 +22,10 @@ class ADRCController:
         min_u (float): Minimum control signal limit.
     """
 
-    def __init__(self, setpoint=0, h0=0.001, r0=1, b0=5, beta01=0, beta02=0, beta03=0, 
-                 k1=0, k2=0, alpha1=0, alpha2=0, max_u=float('inf'), min_u=float('-inf')):
+    def __init__(self, setpoint: float = 0, h0: float = 0.001, r0: float = 1, b0: float = 5, 
+                 beta01: float = 0, beta02: float = 0, beta03: float = 0, 
+                 k1: float = 0, k2: float = 0, alpha1: float = 0, alpha2: float = 0, 
+                 max_u: float = float('inf'), min_u: float = float('-inf')):
         """
         Initialize the ADRCController with given parameters.
 
@@ -42,18 +45,18 @@ class ADRCController:
             min_u (float): Minimum control signal limit.
         """
         self.setpoint = setpoint
-        self.h = 0  # Timestep
+        self.h = 0.0  # Timestep
 
         # Tracking differentiator (TD)
-        self._x1 = 0  # State estimate
-        self._x2 = 0  # State derivative estimate
+        self._x1 = 0.0  # State estimate
+        self._x2 = 0.0  # State derivative estimate
         self.h0 = h0  # Filter factor
         self.r0 = r0  # Tracking speed
 
         # Extended State Observer (ESO)
-        self._z1 = 0  # State estimate
-        self._z2 = 0  # State derivative estimate
-        self._z3 = 0  # Disturbance estimate
+        self._z1 = 0.0  # State estimate
+        self._z2 = 0.0  # State derivative estimate
+        self._z3 = 0.0  # Disturbance estimate
         self.beta01 = beta01
         self.beta02 = beta02
         self.beta03 = beta03
@@ -70,7 +73,7 @@ class ADRCController:
         self.min_u = min_u
 
         # Remember last control signal to compute ESO
-        self._last_control_signal = 0
+        self._last_control_signal = 0.0
 
     def _update_tracking_differentiator(self, x: float) -> None:
         """

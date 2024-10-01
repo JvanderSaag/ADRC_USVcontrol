@@ -2,20 +2,21 @@ import numpy as np
 
 class PIDController:
     """
-    PID Controller class with control signal saturation.
+    Proportional-Integral-Derivative (PID) Controller class with control signal saturation.
 
     Attributes:
         Kp (float): Proportional gain.
         Ki (float): Integral gain.
         Kd (float): Derivative gain.
         setpoint (float): Desired setpoint.
-        max_u (float): Maximum control signal.
-        min_u (float): Minimum control signal.
+        max_u (float): Maximum control signal limit.
+        min_u (float): Minimum control signal limit.
         prev_error (float): Previous error value.
         integral (float): Integral of the error.
     """
 
-    def __init__(self, Kp, Ki, Kd, setpoint=0, max_u=float('inf'), min_u=float('-inf')):
+    def __init__(self, Kp: float, Ki: float, Kd: float, setpoint: float = 0, 
+                 max_u: float = float('inf'), min_u: float = float('-inf')):
         """
         Initialize the PIDController with given parameters.
 
@@ -33,10 +34,20 @@ class PIDController:
         self.setpoint = setpoint
         self.max_u = max_u
         self.min_u = min_u
-        self.prev_error = 0
-        self.integral = 0
+        self.prev_error = 0.0
+        self.integral = 0.0
 
-    def compute_control_signal(self, measurement, dt):
+    def compute_control_signal(self, measurement: float, dt: float) -> float:
+        """
+        Compute the control signal based on the measurement and time step.
+
+        Args:
+            measurement (float): Current measurement of the system.
+            dt (float): Time step duration.
+
+        Returns:
+            float: Control signal after applying PID control and saturation.
+        """
         # Calculate error
         error = self.setpoint - measurement
 
@@ -48,7 +59,7 @@ class PIDController:
         I = self.Ki * self.integral
 
         # Derivative term (set to 0 if first timestep)
-        if dt == 0 or self.prev_error == 0:  # Skip derivative for the first step
+        if dt == 0:
             D = 0
         else:
             derivative = (error - self.prev_error) / dt
