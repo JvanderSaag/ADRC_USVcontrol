@@ -7,9 +7,9 @@ from controllers.ADRC import ADRCController
 from systems.Vessel_SISO import SISOVesselSystem
 
 
-def calculate_mse(reference: np.ndarray, signal: np.ndarray) -> float:
+def calculate_rmse(reference: np.ndarray, signal: np.ndarray) -> float:
     """
-    Calculate the Mean Squared Error (MSE) between the reference and signal.
+    Calculate the Root Mean Squared Error (RMSE) between the reference and signal.
 
     Args:
         reference (np.ndarray): The reference signal (desired output).
@@ -18,7 +18,7 @@ def calculate_mse(reference: np.ndarray, signal: np.ndarray) -> float:
     Returns:
         float: The calculated mean squared error.
     """
-    return np.mean((reference - signal) ** 2)
+    return np.sqrt(np.mean((reference - signal) ** 2))
 
 
 def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: float, 
@@ -45,7 +45,7 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
 
     Returns:
         tuple: Contains time array, setpoint, positions for PID and ADRC, 
-               control signals for both controllers, disturbances, and MSE for both controllers.
+               control signals for both controllers, disturbances, and RMSE for both controllers.
     """
     # Simulation parameters
     time_end = 120  # Simulation time in seconds
@@ -94,7 +94,7 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
     for i in range(1, num_steps):
         # Determine if a disturbance should be applied (0.1% chance)
         if np.random.rand() < disturbance_probability and i > disturbance_until_time:  # Apply disturbance if not locked
-            disturbance_length = np.random.randint(1/dt * 5, 1/dt * 15)  # Random disturbance length
+            disturbance_length = np.random.randint(1/dt * 1, 1/dt * 3)  # Random disturbance length
             disturbance[i:i + disturbance_length] = np.random.normal(-2, 2)  # Apply disturbance
             disturbance_until_time = i + disturbance_length
         elif i > disturbance_until_time:
@@ -118,16 +118,16 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
 
         pid_control_signal_filtered[i] = pid_propeller_output
         adrc_control_signal_filtered[i] = adrc_propeller_output
-
+     
         # Update ship system with control signals and disturbance for PID
         position_pid[i] = ship1.step(pid_control_signal_filtered[i], disturbance[i], dt)
 
         # Update ship system with control signals and disturbance for ADRC
         position_adrc[i] = ship2.step(adrc_control_signal_filtered[i], disturbance[i], dt)
 
-    # Calculate MSE for both controllers
-    mse_pid = calculate_mse(setpoint, position_pid)
-    mse_adrc = calculate_mse(setpoint, position_adrc)
+    # Calculate RMSE for both controllers
+    mse_pid = calculate_rmse(setpoint, position_pid)
+    mse_adrc = calculate_rmse(setpoint, position_adrc)
 
     return (time, setpoint, position_pid, position_adrc, 
             pid_control_signal_filtered, adrc_control_signal_filtered, 
@@ -168,7 +168,7 @@ def update(val: float) -> None:
     tau_propeller = tau_propeller_slider.val
 
     # Re-run the simulation with the new values
-    time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, mse_pid, mse_adrc = run_simulation(
+    time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, rmse_pid, rmse_adrc = run_simulation(
         Kp, Ki, Kd, h0, r0, b0, beta01, beta02, beta03, k1, k2, alpha1, alpha2, tau_propeller)
 
     # Update the plot data
@@ -180,8 +180,8 @@ def update(val: float) -> None:
     adrc_signal_plot.set_ydata(adrc_control_signal)
     disturbance_plot.set_ydata(disturbance)
 
-    pos_pid_plot.set_label(f"Ship Position (PID Control) \nMSE: {mse_pid:.3f}")
-    pos_adrc_plot.set_label(f"Ship Position (ADRC Control) \nMSE: {mse_adrc:.3f}")
+    pos_pid_plot.set_label(f"Ship Position (PID Control) \nRMSE: {rmse_pid:.3f}")
+    pos_adrc_plot.set_label(f"Ship Position (ADRC Control) \nRMSE: {rmse_adrc:.3f}")
 
     # Redraw the plot
     ax1.relim()
@@ -198,20 +198,20 @@ if __name__ == "__main__":
     # Initial values
     tau_propeller = 0
     Kp, Ki, Kd = 35, 2.5, 45
-    h0, r0, b0 = 0.01, 1, 1
-    beta01, beta02, beta03 = 1, 0.62, 20
-    k1, k2, alpha1, alpha2 = 0.04, 0.05, 0.3, 0.1
+    h0, r0, b0 = 0.01, 1.2, 1
+    beta01, beta02, beta03 = 1, 0.33, 16.75
+    k1, k2, alpha1, alpha2 = 1.3, 3.5, 1.5, 1.2
 
     # Initial simulation run with default values
-    time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, mse_pid, mse_adrc = run_simulation(
+    time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, rmse_pid, rmse_adrc = run_simulation(
         Kp=Kp, Ki=Ki, Kd=Kd, h0=h0, r0=r0, b0=b0, beta01=beta01, beta02=beta02, beta03=beta03, k1=k1, k2=k2, alpha1=alpha1, alpha2=alpha2, tau_propeller=tau_propeller)
 
     # Create the figure and the plot
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
 
     # Plot ship positions
-    pos_pid_plot, = ax1.plot(time, position_pid, label=f"Ship Position (PID Control) \nMSE: {mse_pid:.3f}")
-    pos_adrc_plot, = ax1.plot(time, position_adrc, label=f"Ship Position (ADRC Control) \nMSE: {mse_adrc:.3f}")
+    pos_pid_plot, = ax1.plot(time, position_pid, label=f"Ship Position (PID Control) \nRMSE: {rmse_pid:.3f}")
+    pos_adrc_plot, = ax1.plot(time, position_adrc, label=f"Ship Position (ADRC Control) \nRMSE: {rmse_adrc:.3f}")
     setpoint_plot, = ax1.plot(time, setpoint, color='0', linestyle=':', label="Setpoint (Step to 1 at t=10s)")
     ax1.set_title('Ship Position vs Setpoint')
     ax1.set_ylabel('Position [m]')
@@ -267,10 +267,10 @@ if __name__ == "__main__":
     adrc_k2_slider = Slider(ax_k2, 'ADRC k2', 0.1, 10.0, valinit=k2)
 
     ax_alpha1 = plt.axes([0.74, 0.3, 0.22, 0.05])
-    adrc_alpha1_slider = Slider(ax_alpha1, 'ADRC alpha1', 0.001, 3.0, valinit=alpha1)
+    adrc_alpha1_slider = Slider(ax_alpha1, 'ADRC alpha1', 0.001, 5.0, valinit=alpha1)
 
     ax_alpha2 = plt.axes([0.74, 0.25, 0.22, 0.05])
-    adrc_alpha2_slider = Slider(ax_alpha2, 'ADRC alpha2', 0.001, 3.0, valinit=alpha2)
+    adrc_alpha2_slider = Slider(ax_alpha2, 'ADRC alpha2', 0.001, 5.0, valinit=alpha2)
 
 
     # Link slider updates to the update function
