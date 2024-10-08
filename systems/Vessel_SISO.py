@@ -23,7 +23,7 @@ class SISOVesselSystem:
         self._position = 0  # Position (x)
         self._velocity = 0  # Velocity (xdot)
     
-    def step(self, control_input, disturbance, dt):
+    def step(self, control_input: float, disturbance: float, dt:float) -> float:
         """
         Updates the state of the vessel system for a given time step.
         
