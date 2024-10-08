@@ -84,7 +84,7 @@ python3 compare_controllers.py
 The simulation includes interactive sliders for adjusting the parameters of both the PID and ADRC controllers in real-time:
 
 - PID gains: `Kp`, `Ki`, `Kd`
-- ADRC parameters: `h0`, `r0`, `b0`, `β01`, `β02`, `β03`, `k1`, `k2`, `α1`, `α2`
+- ADRC parameters: `h0`, `r0`, `b0`, `ω_o`, `ω_c` `α1`, `α2`
 - Propeller time constant: `τ`
 
 ## Results
