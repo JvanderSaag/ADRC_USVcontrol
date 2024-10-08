@@ -3,11 +3,16 @@ class SISOVesselSystem:
     A class used to represent a Single Input Single Output (SISO) vessel system.
 
     Attributes:
+        Public:
         m11 (float): Mass of the vessel.
         X_u (float): Linear damping coefficient.
         X_absuu (float): Quadratic damping coefficient.
         position (float): Position of the vessel.
         velocity (float): Velocity of the vessel.
+
+        Private:
+        _position (float): Position of the vessel.
+        _velocity (float): Velocity of the vessel.
     """
     def __init__(self):
         """

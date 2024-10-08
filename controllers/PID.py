@@ -5,14 +5,17 @@ class PIDController:
     Proportional-Integral-Derivative (PID) Controller class with control signal saturation.
 
     Attributes:
+        Public:
         Kp (float): Proportional gain.
         Ki (float): Integral gain.
         Kd (float): Derivative gain.
         setpoint (float): Desired setpoint.
         max_u (float): Maximum control signal limit.
         min_u (float): Minimum control signal limit.
-        prev_error (float): Previous error value.
-        integral (float): Integral of the error.
+        
+        Private:
+        _prev_error (float): Previous error for derivative term.
+        _integral (float): Integral term.
     """
 
     def __init__(self, Kp: float, Ki: float, Kd: float, setpoint: float = 0, 
@@ -34,8 +37,8 @@ class PIDController:
         self.setpoint = setpoint
         self.max_u = max_u
         self.min_u = min_u
-        self.prev_error = 0.0
-        self.integral = 0.0
+        self._prev_error = 0.0
+        self._integral = 0.0
 
     def compute_control_signal(self, measurement: float, dt: float) -> float:
         """
@@ -55,18 +58,18 @@ class PIDController:
         P = self.Kp * error
 
         # Integral term
-        self.integral += error * dt
-        I = self.Ki * self.integral
+        self._integral += error * dt
+        I = self.Ki * self._integral
 
         # Derivative term (set to 0 if first timestep)
         if dt == 0:
             D = 0
         else:
-            derivative = (error - self.prev_error) / dt
+            derivative = (error - self._prev_error) / dt
             D = self.Kd * derivative
 
         # Update error
-        self.prev_error = error
+        self._prev_error = error
 
         # Control signal before saturation
         control_signal = P + I + D

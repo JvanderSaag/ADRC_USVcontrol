@@ -6,6 +6,7 @@ class ADRCController:
     and "From PID to ADRC" by Han, J. (2009).
 
     Attributes:
+        Public:
         setpoint (float): Controller setpoint.
         h (float): Timestep duration.
         h0 (float): Filter factor for the tracking differentiator.
@@ -17,6 +18,19 @@ class ADRCController:
         alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
         max_u (float): Maximum control signal limit.
         min_u (float): Minimum control signal limit.
+
+        Private:
+        _x1 (float): State estimate for the tracking differentiator.
+        _x2 (float): State derivative estimate for the tracking differentiator.
+        _z1 (float): State estimate for the Extended State Observer (ESO).
+        _z2 (float): State derivative estimate for the Extended State Observer (ESO).
+        _z3 (float): Disturbance estimate for the Extended State Observer (ESO).
+        _beta01 (float): Observer bandwidth parameter for the Extended State Observer (ESO).
+        _beta02 (float): Observer bandwidth parameter for the Extended State Observer (ESO).
+        _beta03 (float): Observer bandwidth parameter for the Extended State Observer (ESO).
+        _k1 (float): Closed-loop controller bandwidth parameter for the Nonlinear State Error Feedback (NLSEF).
+        _k2 (float): Closed-loop controller bandwidth parameter for the Nonlinear State Error Feedback (NLSEF).
+        _last_control_signal (float): Last control signal to compute ESO.
     """
 
     def __init__(self, setpoint: float = 0, h0: float = 0.001, r0: float = 1, b0: float = 5, 
