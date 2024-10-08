@@ -11,11 +11,8 @@ class ADRCController:
         h0 (float): Filter factor for the tracking differentiator.
         r0 (float): Tracking speed for the tracking differentiator.
         b0 (float): Control coefficient.
-        beta01 (float): Parameter for the Extended State Observer (ESO).
-        beta02 (float): Parameter for the Extended State Observer (ESO).
-        beta03 (float): Parameter for the Extended State Observer (ESO).
-        k1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
-        k2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+        omega_o (float): Observer bandwidth for the Extended State Observer (ESO).
+        omega_c (float): Closed-loop controller bandwidth parameter for the Nonlinear State Error Feedback (NLSEF).
         alpha1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
         alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
         max_u (float): Maximum control signal limit.
@@ -23,22 +20,19 @@ class ADRCController:
     """
 
     def __init__(self, setpoint: float = 0, h0: float = 0.001, r0: float = 1, b0: float = 5, 
-                 beta01: float = 0, beta02: float = 0, beta03: float = 0, 
-                 k1: float = 0, k2: float = 0, alpha1: float = 0, alpha2: float = 0, 
+                 omega_o: float = 0, omega_c: float = 0, alpha1: float = 0, alpha2: float = 0, 
                  max_u: float = float('inf'), min_u: float = float('-inf')):
         """
         Initialize the ADRCController with given parameters.
 
         Args:
             setpoint (float): Controller setpoint.
-            h0 (float): Filter factor for tracking differentiator.
-            r0 (float): Tracking speed for tracking differentiator.
+            h (float): Timestep duration.
+            h0 (float): Filter factor for the tracking differentiator.
+            r0 (float): Tracking speed for the tracking differentiator.
             b0 (float): Control coefficient.
-            beta01 (float): Parameter for the Extended State Observer (ESO).
-            beta02 (float): Parameter for the Extended State Observer (ESO).
-            beta03 (float): Parameter for the Extended State Observer (ESO).
-            k1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
-            k2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
+            omega_o (float): Observer bandwidth for the Extended State Observer (ESO).
+            omega_c (float): Closed-loop controller bandwidth parameter for the Nonlinear State Error Feedback (NLSEF).
             alpha1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
             alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
             max_u (float): Maximum control signal limit.
@@ -57,14 +51,14 @@ class ADRCController:
         self._z1 = 0.0  # State estimate
         self._z2 = 0.0  # State derivative estimate
         self._z3 = 0.0  # Disturbance estimate
-        self.beta01 = beta01
-        self.beta02 = beta02
-        self.beta03 = beta03
+        self._beta01 = 3 * omega_o
+        self._beta02 = 3 * omega_o ** 2
+        self._beta03 = omega_o ** 3
         self.b0 = b0  # Control coefficient
 
         # Nonlinear State Error Feedback (NLSEF)
-        self.k1 = k1
-        self.k2 = k2
+        self._k1 = omega_c ** 2
+        self._k2 = 2 * omega_c
         self.alpha1 = alpha1
         self.alpha2 = alpha2
 
@@ -98,9 +92,9 @@ class ADRCController:
         """
         e = self._z1 - y
 
-        z1_next = self._z1 + self.h * self._z2 - self.beta01 * e
-        z2_next = self._z2 + self.h * (self._z3 + self.b0 * u) - self.beta02 * self._fal(e, 0.5, self.h)
-        z3_next = self._z3 - self.beta03 * self._fal(e, 0.25, self.h)
+        z1_next = self._z1 + self.h * self._z2 - self._beta01 * e
+        z2_next = self._z2 + self.h * (self._z3 + self.b0 * u) - self._beta02 * self._fal(e, 0.5, self.h)
+        z3_next = self._z3 - self._beta03 * self._fal(e, 0.25, self.h)
 
         self._z1 = z1_next
         self._z2 = z2_next
@@ -115,7 +109,7 @@ class ADRCController:
         """
         e1 = self._x1 - self._z1
         e2 = self._x2 - self._z2
-        u0 = self.k1 * self._fal(e1, self.alpha1, self.h) + self.k2 * self._fal(e2, self.alpha2, self.h)
+        u0 = self._k1 * self._fal(e1, self.alpha1, self.h) + self._k2 * self._fal(e2, self.alpha2, self.h)
         u = u0 - self._z3 / self.b0
 
         return u
