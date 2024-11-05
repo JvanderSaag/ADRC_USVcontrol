@@ -70,7 +70,7 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
     adrc = ADRCController(
         h0=h0, r0=r0, b0=b0, omega_o=omega_o,
         omega_c=omega_c, alpha1=alpha1, alpha2=alpha2,
-        min_u=min_input, max_u=max_input
+        min_u=min_input, max_u=max_input, tau=tau_propeller
     )
 
     # Arrays to store results
@@ -84,10 +84,6 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
 
     # Probability of applying a disturbance
     disturbance_probability = 0.001
-
-    # Propeller spin-up dynamics initialisation
-    pid_propeller_output = 0  # Initial output of the propeller (stationary)
-    adrc_propeller_output = 0  # Initial output of the propeller (stationary)
 
     # Run the simulation
     disturbance_until_time = 0  # Disturbance applied until this time
@@ -108,22 +104,13 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
         pid_control_signal[i] = pid.compute_control_signal(position_pid[i - 1], dt)
         adrc_control_signal[i] = adrc.compute_control_signal(position_adrc[i - 1], dt)
 
-        # Apply propeller dynamics (first-order lag)
-        if tau_propeller == 0:
-            pid_propeller_output = pid_control_signal[i]
-            adrc_propeller_output = adrc_control_signal[i]
-        else:
-            pid_propeller_output += (dt / tau_propeller) * (pid_control_signal[i] - pid_propeller_output)
-            adrc_propeller_output += (dt / tau_propeller) * (adrc_control_signal[i] - adrc_propeller_output)
+        # Update ship system with control signals and disturbances
+        position_pid[i] = ship1.step(pid_control_signal[i], disturbance[i], dt)
+        position_adrc[i] = ship2.step(adrc_control_signal[i], disturbance[i], dt)
 
-        pid_control_signal_filtered[i] = pid_propeller_output
-        adrc_control_signal_filtered[i] = adrc_propeller_output
-     
-        # Update ship system with control signals and disturbance for PID
-        position_pid[i] = ship1.step(pid_control_signal_filtered[i], disturbance[i], dt)
-
-        # Update ship system with control signals and disturbance for ADRC
-        position_adrc[i] = ship2.step(adrc_control_signal_filtered[i], disturbance[i], dt)
+        # Save the filtered control signals
+        pid_control_signal_filtered[i] = ship1.last_control_input
+        adrc_control_signal_filtered[i] = ship2.last_control_input
 
     # Calculate RMSE for both controllers
     mse_pid = calculate_rmse(setpoint, position_pid)
@@ -193,7 +180,7 @@ def update(val: float) -> None:
 # Plotting and GUI setup
 if __name__ == "__main__":
     # Initial values
-    tau_propeller = 0
+    tau_propeller = 2 / 4 # Settling time of 2 seconds, divided by 4 to get time constant for first-order systems.
     Kp, Ki, Kd = 35, 2.5, 45
     h0, r0, b0 = 0.14, 0.95, 0.058
     omega_o = 0.64
@@ -240,25 +227,25 @@ if __name__ == "__main__":
     pid_Kd_slider = Slider(ax_Kd, 'PID Kd', 1, 100.0, valinit=Kd)
 
     ax_h0 = plt.axes([0.74, 0.7, 0.22, 0.05])
-    adrc_h0_slider = Slider(ax_h0, 'ADRC h0', 0.01, 0.5, valinit=h0)
+    adrc_h0_slider = Slider(ax_h0, 'ADRC h0', 0.001, 0.5, valinit=h0)
 
     ax_r0 = plt.axes([0.74, 0.65, 0.22, 0.05])
-    adrc_r0_slider = Slider(ax_r0, 'ADRC r0', 0.01, 2.0, valinit=r0)
+    adrc_r0_slider = Slider(ax_r0, 'ADRC r0', 0.001, 2.0, valinit=r0)
 
     ax_b0 = plt.axes([0.74, 0.6, 0.22, 0.05])
-    adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.0001, 0.5, valinit=b0)
+    adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.001, 0.5, valinit=b0)
 
     ax_omegao = plt.axes([0.74, 0.55, 0.22, 0.05])
-    adrc_omegao_slider = Slider(ax_omegao, 'ADRC omega_o', 0.001, 2, valinit=omega_o)
+    adrc_omegao_slider = Slider(ax_omegao, 'ADRC omega_o', 0., 2, valinit=omega_o)
 
     ax_omegac = plt.axes([0.74, 0.5, 0.22, 0.05])
-    adrc_omegac_slider = Slider(ax_omegac, 'ADRC omega c', 0.1, 20.0, valinit=omega_c)
+    adrc_omegac_slider = Slider(ax_omegac, 'ADRC omega c', 0, 20.0, valinit=omega_c)
 
     ax_alpha1 = plt.axes([0.74, 0.45, 0.22, 0.05])
-    adrc_alpha1_slider = Slider(ax_alpha1, 'ADRC alpha1', 0.001, 2, valinit=alpha1)
+    adrc_alpha1_slider = Slider(ax_alpha1, 'ADRC alpha1', 0, 2, valinit=alpha1)
 
     ax_alpha2 = plt.axes([0.74, 0.4, 0.22, 0.05])
-    adrc_alpha2_slider = Slider(ax_alpha2, 'ADRC alpha2', 0.001, 2, valinit=alpha2)
+    adrc_alpha2_slider = Slider(ax_alpha2, 'ADRC alpha2', 0, 2, valinit=alpha2)
 
 
     # Link slider updates to the update function

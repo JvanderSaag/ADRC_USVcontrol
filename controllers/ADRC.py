@@ -1,4 +1,5 @@
 import numpy as np
+from collections import deque
 
 class ADRCController:
     """
@@ -35,7 +36,7 @@ class ADRCController:
 
     def __init__(self, setpoint: float = 0, h0: float = 0.001, r0: float = 1, b0: float = 5, 
                  omega_o: float = 0, omega_c: float = 0, alpha1: float = 0, alpha2: float = 0, 
-                 max_u: float = float('inf'), min_u: float = float('-inf')):
+                 max_u: float = float('inf'), min_u: float = float('-inf'), tau: float = 0):
         """
         Initialize the ADRCController with given parameters.
 
@@ -51,9 +52,11 @@ class ADRCController:
             alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
             max_u (float): Maximum control signal limit.
             min_u (float): Minimum control signal limit.
+            tau (float): Delay time for the control signal.
         """
         self.setpoint = setpoint
         self.h = 0.0  # Timestep
+        self.tau = tau  # Delay time for the control signal
 
         # Tracking differentiator (TD)
         self._x1 = 0.0  # State estimate
@@ -82,6 +85,10 @@ class ADRCController:
 
         # Remember last control signal to compute ESO
         self._last_control_signal = 0.0
+
+        # Compensator block
+        self._comp_x1 = 0.0
+        self._comp_x2 = 0.0
 
     def _update_tracking_differentiator(self, x: float) -> None:
         """
@@ -174,6 +181,19 @@ class ADRCController:
         else:
             return e / (delta ** (1 - alpha))
 
+
+    def _get_delayed_control_signal(self) -> float:
+        """
+        Get the control signal delayed by tau seconds.
+
+        Returns:
+            float: Control signal delayed by tau seconds.
+        """
+        delay_steps = int(self.tau / self.h)  # Number of steps to delay based on timestep duration
+        if len(self.delay_buffer) >= delay_steps:
+            return self.delay_buffer[-delay_steps]  # Get the control signal at tau delay
+        return 0.0  # Return 0 if delay buffer isn't full yet
+
     def compute_control_signal(self, measurement: float, dt: float) -> float:
         """
         Compute the control signal based on the measurement and time step.
@@ -186,7 +206,8 @@ class ADRCController:
             float: Control signal after applying ADRC.
         """
         self.h = dt  # Update timestep
-        self._update_extended_state_observer(measurement, self._last_control_signal)  # Update ESO with the current measurement and last control signal
+
+        self._update_extended_state_observer(measurement, self._last_control_signal)  # Update ESO with delayed control signal
 
         self._update_tracking_differentiator(self.setpoint)  # Update tracking differentiator
         control_signal = self._compute_nlsef()  # Compute the control signal using NLSEF
@@ -194,6 +215,18 @@ class ADRCController:
         # Apply control signal limits
         control_signal = np.clip(control_signal, self.min_u, self.max_u)
 
+        # Compensator block, derivative determined with another tracking differentiator
+        if not self.tau == 0:
+            # compensated_control_signal = control_signal + (self.tau / dt) * (control_signal - self._last_control_signal)
+            comp_x1 = self._comp_x1 + self.h * self._comp_x2
+            comp_x2 = self._comp_x2 + self.h * self._fst(self._comp_x1 - control_signal, self._comp_x2, 1e9, self.h)
+            self._comp_x1, self._comp_x2 = comp_x1, comp_x2
+            compensated_control_signal = comp_x1 + self.tau * comp_x2
+            
+        else:
+            compensated_control_signal = control_signal
+
         self._last_control_signal = control_signal  # Save the last control signal for the next ESO update
 
-        return control_signal
+        return compensated_control_signal
+    

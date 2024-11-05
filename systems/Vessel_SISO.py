@@ -23,10 +23,14 @@ class SISOVesselSystem:
         self.m11 = 17.06
         self.X_u = 0.2
         self.X_absuu = -0.79
+        self.tau = 0.5
 
         # Vessel state variables
         self._position = 0  # Position (x)
         self._velocity = 0  # Velocity (xdot)
+        
+        # Last control input
+        self.last_control_input = 0
     
     def step(self, control_input: float, disturbance: float, dt:float) -> float:
         """
@@ -38,9 +42,14 @@ class SISOVesselSystem:
             dt (float): Time step duration.
         Returns:
             float: New position of the vessel after the time step.
-        """
+        """         
+        # Delay the control input by tau
+        alpha = self.tau / (self.tau + dt)
+        delayed_control_input = alpha * self.last_control_input + (1 - alpha) * control_input
+        self.last_control_input = delayed_control_input
+
         # Update acceleration based on the control input and disturbance
-        acceleration = 1/self.m11 * (-self.X_u * self._velocity + self.X_absuu * abs(self._velocity) * self._velocity + control_input + disturbance)
+        acceleration = 1 / self.m11 * (-self.X_u * self._velocity + self.X_absuu * abs(self._velocity) * self._velocity + delayed_control_input + disturbance)
 
         # Update velocity and position using Euler integration
         self._velocity += acceleration * dt
