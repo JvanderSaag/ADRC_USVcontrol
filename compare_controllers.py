@@ -145,7 +145,7 @@ def update(val: float) -> None:
     h0 = adrc_h0_slider.val
     r0 = adrc_r0_slider.val
     b0 = adrc_b0_slider.val
-    omega_o = adrc_omegao_slider.val
+    # omega_o = adrc_omegao_slider.val
     omega_c = adrc_omegac_slider.val
     alpha1 = adrc_alpha1_slider.val
     alpha2 = adrc_alpha2_slider.val
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     # Initial values
     tau_propeller = 2 / 4 # Settling time of 2 seconds, divided by 4 to get time constant for first-order systems.
     Kp, Ki, Kd = 35, 2.5, 45
-    h0, r0, b0 = 0.14, 0.95, 0.058
+    h0, r0, b0 = 0.14, 0.85, 0.058
     omega_o = 0.64
     omega_c, alpha1, alpha2 = 10.54, 0.816, 0.01
 
@@ -235,8 +235,8 @@ if __name__ == "__main__":
     ax_b0 = plt.axes([0.74, 0.6, 0.22, 0.05])
     adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.001, 0.5, valinit=b0)
 
-    ax_omegao = plt.axes([0.74, 0.55, 0.22, 0.05])
-    adrc_omegao_slider = Slider(ax_omegao, 'ADRC omega_o', 0., 2, valinit=omega_o)
+    # ax_omegao = plt.axes([0.74, 0.55, 0.22, 0.05])
+    # adrc_omegao_slider = Slider(ax_omegao, 'ADRC omega_o', 0., 2, valinit=omega_o)
 
     ax_omegac = plt.axes([0.74, 0.5, 0.22, 0.05])
     adrc_omegac_slider = Slider(ax_omegac, 'ADRC omega c', 0, 20.0, valinit=omega_c)
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     for slider in [
         pid_Kp_slider, pid_Ki_slider, pid_Kd_slider,
         adrc_h0_slider, adrc_r0_slider, adrc_b0_slider,
-        adrc_omegao_slider,
+        # adrc_omegao_slider,
         adrc_omegac_slider, adrc_alpha1_slider, adrc_alpha2_slider,
         tau_propeller_slider
     ]:

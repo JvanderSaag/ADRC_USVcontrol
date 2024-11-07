@@ -1,3 +1,4 @@
+import numpy as np
 class SISOVesselSystem:
     """
     A class used to represent a Single Input Single Output (SISO) vessel system.
@@ -24,6 +25,8 @@ class SISOVesselSystem:
         self.X_u = 0.2
         self.X_absuu = -0.79
         self.tau = 0.5
+        self.min_u = -15
+        self.max_u = 15
 
         # Vessel state variables
         self._position = 0  # Position (x)
@@ -46,8 +49,13 @@ class SISOVesselSystem:
         # Delay the control input by tau
         alpha = self.tau / (self.tau + dt)
         delayed_control_input = alpha * self.last_control_input + (1 - alpha) * control_input
-        self.last_control_input = delayed_control_input
 
+        # Clip the control input
+        delayed_control_input = np.clip(delayed_control_input, self.min_u, self.max_u)
+
+        # Save the control input for the next iteration
+        self.last_control_input = delayed_control_input
+        
         # Update acceleration based on the control input and disturbance
         acceleration = 1 / self.m11 * (-self.X_u * self._velocity + self.X_absuu * abs(self._velocity) * self._velocity + delayed_control_input + disturbance)
 
