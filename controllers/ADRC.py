@@ -12,12 +12,9 @@ class ADRCController:
         h0 (float): Filter factor for the tracking differentiator.
         r0 (float): Tracking speed for the tracking differentiator.
         b0 (float): Control coefficient.
-        omega_o (float): Observer bandwidth for the Extended State Observer (ESO).
-        omega_c (float): Closed-loop controller bandwidth parameter for the Nonlinear State Error Feedback (NLSEF).
-        alpha1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
-        alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
-        max_u (float): Maximum control signal limit.
-        min_u (float): Minimum control signal limit.
+        k1 (float): Proportional gain for the Nonlinear State Error Feedback (NLSEF).
+        k2 (float): Derivative gain for the Nonlinear State Error Feedback (NLSEF).
+        tau (float): Delay time for the control signal.
 
         Private:
         _x1 (float): State estimate for the tracking differentiator.
@@ -34,8 +31,7 @@ class ADRCController:
     """
 
     def __init__(self, setpoint: float = 0, h0: float = 0.001, r0: float = 1, b0: float = 5, 
-                 omega_o: float = 0, omega_c: float = 0, alpha1: float = 0, alpha2: float = 0, 
-                 max_u: float = float('inf'), min_u: float = float('-inf'), tau: float = 0):
+                 k1: float = 0, k2: float = 0, tau: float = 0):
         """
         Initialize the ADRCController with given parameters.
 
@@ -44,13 +40,9 @@ class ADRCController:
             h (float): Timestep duration.
             h0 (float): Filter factor for the tracking differentiator.
             r0 (float): Tracking speed for the tracking differentiator.
-            b0 (float): Control coefficient.
-            omega_o (float): Observer bandwidth for the Extended State Observer (ESO).
-            omega_c (float): Closed-loop controller bandwidth parameter for the Nonlinear State Error Feedback (NLSEF).
-            alpha1 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
-            alpha2 (float): Parameter for the Nonlinear State Error Feedback (NLSEF).
-            max_u (float): Maximum control signal limit.
-            min_u (float): Minimum control signal limit.
+            b0 (float): Control coefficient, higher values means less aggressive actuator response.
+            k1 (float): Proportional gain for the Nonlinear State Error Feedback (NLSEF).
+            k2 (float): Derivative gain for the Nonlinear State Error Feedback (NLSEF).
             tau (float): Delay time for the control signal.
         """
         self.setpoint = setpoint
@@ -70,14 +62,10 @@ class ADRCController:
         self.b0 = b0  # Control coefficient
 
         # Nonlinear State Error Feedback (NLSEF)
-        self._k1 = omega_c ** 2
-        self._k2 = 2 * omega_c
-        self.alpha1 = alpha1
-        self.alpha2 = alpha2
-
-        # Control limits
-        self.max_u = max_u
-        self.min_u = min_u
+        self.k1 = k1 # Proportional gain
+        self.k2 = k2 # Derivative gain
+        self._alpha1 = 0.5
+        self._alpha2 = 0.25
 
         # Remember last control signal to compute ESO
         self._last_control_signal = 0.0
@@ -126,8 +114,8 @@ class ADRCController:
         """
         e1 = self._x1 - self._z1
         e2 = self._x2 - self._z2
-        u0 = self._k1 * self._fal(e1, self.alpha1, self.h) + self._k2 * self._fal(e2, self.alpha2, self.h)
-        u = u0 - self._z3 / self.b0
+        u0 = self.k1 * self._fal(e1, self._alpha1, self.h) + self.k2 * self._fal(e2, self._alpha2, self.h)
+        u = (u0 - self._z3) / self.b0
 
         return u
 
@@ -198,7 +186,6 @@ class ADRCController:
         self._update_tracking_differentiator(self.setpoint)  # Update tracking differentiator
         control_signal = self._compute_nlsef()  # Compute the control signal using NLSEF
 
-        # Apply control signal limits
         self._last_control_signal = control_signal  # Save the last control signal for the next ESO update
 
         # Compensator block, derivative determined with another tracking differentiator

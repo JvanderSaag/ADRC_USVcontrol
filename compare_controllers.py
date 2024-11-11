@@ -22,8 +22,7 @@ def calculate_rmse(reference: np.ndarray, signal: np.ndarray) -> float:
 
 
 def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: float, 
-                   omega_o: float, omega_c: float,
-                   alpha1: float, alpha2: float, tau_propeller: float) -> tuple:
+                   k1: float, k2: float, tau_propeller: float) -> tuple:
     """
     Run the simulation with the given PID and ADRC gains and propeller dynamics.
 
@@ -31,15 +30,11 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
         Kp (float): Proportional gain of the PID controller.
         Ki (float): Integral gain of the PID controller.
         Kd (float): Derivative gain of the PID controller.
-        h0 (float): ADRC parameter.
-        r0 (float): ADRC parameter.
-        b0 (float): ADRC parameter.
-        beta01 (float): ADRC tuning parameter.
-        beta02 (float): ADRC tuning parameter.
-        beta03 (float): ADRC tuning parameter.
-        omega_c (float): Closed-loop controller bandwidth.
-        alpha1 (float): ADRC parameter.
-        alpha2 (float): ADRC parameter.
+        h0 (float): ADRC filter factor of TD.
+        r0 (float): ADRC tracking speed of TD.
+        b0 (float): ADRC control gain, higher values means less aggressive actuator response.
+        k1 (float): ADRC proportional gain.
+        k2 (float): ADRC derivative gain.
         tau_propeller (float): Propeller time constant.
 
     Returns:
@@ -59,18 +54,13 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
     setpoint[int(80 / dt):] = 2   # Set setpoint to 2 after 80 seconds
     np.random.seed(42)  # Set random seed for reproducibility
 
-    # Input constraints
-    min_input = -15  # Minimum control input
-    max_input = 15   # Maximum control input
-
     # System and controller initialization
     ship1 = SISOVesselSystem()
     ship2 = SISOVesselSystem()
-    pid = PIDController(Kp=Kp, Ki=Ki, Kd=Kd, min_u=min_input, max_u=max_input)
+    pid = PIDController(Kp=Kp, Ki=Ki, Kd=Kd)
     adrc = ADRCController(
-        h0=h0, r0=r0, b0=b0, omega_o=omega_o,
-        omega_c=omega_c, alpha1=alpha1, alpha2=alpha2,
-        min_u=min_input, max_u=max_input, tau=tau_propeller
+        h0=h0, r0=r0, b0=b0,
+        k1=k1, k2=k2, tau=tau_propeller
     )
 
     # Arrays to store results
@@ -133,8 +123,8 @@ def update(val: float) -> None:
     global pid_signal_plot, adrc_signal_plot, disturbance_plot
     global ax1, ax2, fig
     global pid_Kp_slider, pid_Ki_slider, pid_Kd_slider
-    global adrc_h0_slider, adrc_r0_slider, adrc_b0_slider, omega_o
-    global adrc_omegac_slider, adrc_alpha1_slider, adrc_alpha2_slider
+    global adrc_h0_slider, adrc_r0_slider, adrc_b0_slider
+    global k1_slider, k2_slider
     global tau_propeller_slider
     
     # Get the current values of the sliders
@@ -145,15 +135,13 @@ def update(val: float) -> None:
     h0 = adrc_h0_slider.val
     r0 = adrc_r0_slider.val
     b0 = adrc_b0_slider.val
-    # omega_o = adrc_omegao_slider.val
-    omega_c = adrc_omegac_slider.val
-    alpha1 = adrc_alpha1_slider.val
-    alpha2 = adrc_alpha2_slider.val
+    k1 = k1_slider.val
+    k2 = k2_slider.val
     tau_propeller = tau_propeller_slider.val
 
     # Re-run the simulation with the new values
-    time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, rmse_pid, rmse_adrc = run_simulation(
-        Kp, Ki, Kd, h0, r0, b0, omega_o, omega_c, alpha1, alpha2, tau_propeller)
+    _, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, rmse_pid, rmse_adrc = run_simulation(
+        Kp, Ki, Kd, h0, r0, b0, k1, k2, tau_propeller)
 
     # Update the plot data
     pos_pid_plot.set_ydata(position_pid)
@@ -182,13 +170,12 @@ if __name__ == "__main__":
     # Initial values
     tau_propeller = 2 / 4 # Settling time of 2 seconds, divided by 4 to get time constant for first-order systems.
     Kp, Ki, Kd = 35, 2.5, 45
-    h0, r0, b0 = 0.14, 0.85, 0.058
-    omega_o = 0.64
-    omega_c, alpha1, alpha2 = 10.54, 0.816, 0.01
+    h0, r0, b0 = 0.14, 0.856, 0.058
+    k1, k2 = 1.37, 3.96
 
     # Initial simulation run with default values
     time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, rmse_pid, rmse_adrc = run_simulation(
-        Kp=Kp, Ki=Ki, Kd=Kd, h0=h0, r0=r0, b0=b0, omega_o=omega_o, omega_c=omega_c, alpha1=alpha1, alpha2=alpha2, tau_propeller=tau_propeller)
+        Kp=Kp, Ki=Ki, Kd=Kd, h0=h0, r0=r0, b0=b0, k1=k1, k2=k2, tau_propeller=tau_propeller)
 
     # Create the figure and the plot
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
@@ -235,26 +222,18 @@ if __name__ == "__main__":
     ax_b0 = plt.axes([0.74, 0.6, 0.22, 0.05])
     adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.001, 0.5, valinit=b0)
 
-    # ax_omegao = plt.axes([0.74, 0.55, 0.22, 0.05])
-    # adrc_omegao_slider = Slider(ax_omegao, 'ADRC omega_o', 0., 2, valinit=omega_o)
+    ax_k1 = plt.axes([0.74, 0.55, 0.22, 0.05])
+    k1_slider = Slider(ax_k1, 'ADRC k1', 0., 20.0, valinit=k1)
 
-    ax_omegac = plt.axes([0.74, 0.5, 0.22, 0.05])
-    adrc_omegac_slider = Slider(ax_omegac, 'ADRC omega c', 0, 20.0, valinit=omega_c)
-
-    ax_alpha1 = plt.axes([0.74, 0.45, 0.22, 0.05])
-    adrc_alpha1_slider = Slider(ax_alpha1, 'ADRC alpha1', 0, 2, valinit=alpha1)
-
-    ax_alpha2 = plt.axes([0.74, 0.4, 0.22, 0.05])
-    adrc_alpha2_slider = Slider(ax_alpha2, 'ADRC alpha2', 0, 2, valinit=alpha2)
+    ax_k2 = plt.axes([0.74, 0.5, 0.22, 0.05])
+    k2_slider = Slider(ax_k2, 'ADRC k2', 0, 20.0, valinit=k2)
 
 
     # Link slider updates to the update function
     for slider in [
         pid_Kp_slider, pid_Ki_slider, pid_Kd_slider,
         adrc_h0_slider, adrc_r0_slider, adrc_b0_slider,
-        # adrc_omegao_slider,
-        adrc_omegac_slider, adrc_alpha1_slider, adrc_alpha2_slider,
-        tau_propeller_slider
+        k1_slider, k2_slider, tau_propeller_slider
     ]:
         slider.on_changed(update)
 
