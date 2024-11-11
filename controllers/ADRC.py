@@ -119,7 +119,8 @@ class ADRCController:
 
         return u
 
-    def _fst(self, x1: float, x2: float, r0: float, h0: float) -> float:
+    @staticmethod
+    def _fst(x1: float, x2: float, r0: float, h0: float) -> float:
         """
         Fastest synthesis function.
 

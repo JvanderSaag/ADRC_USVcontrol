@@ -57,7 +57,7 @@ def run_simulation(Kp: float, Ki: float, Kd: float, h0: float, r0: float, b0: fl
     # System and controller initialization
     ship1 = SISOVesselSystem()
     ship2 = SISOVesselSystem()
-    pid = PIDController(Kp=Kp, Ki=Ki, Kd=Kd)
+    pid = PIDController(Kp=Kp, Ki=Ki, Kd=Kd, setpoint=0, tau=tau_propeller)
     adrc = ADRCController(
         h0=h0, r0=r0, b0=b0,
         k1=k1, k2=k2, tau=tau_propeller
