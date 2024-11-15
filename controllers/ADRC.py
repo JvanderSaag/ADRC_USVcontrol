@@ -114,7 +114,7 @@ class ADRCController:
         """
         e1 = self._x1 - self._z1
         e2 = self._x2 - self._z2
-        u0 = self.k1 * self._fal(e1, self._alpha1, self.h) + self.k2 * self._fal(e2, self._alpha2, self.h)
+        u0 = self.k1 * e1 + self.k2 * e2
         u = (u0 - self._z3) / self.b0
 
         return u

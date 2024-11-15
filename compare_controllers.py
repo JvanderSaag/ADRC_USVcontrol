@@ -170,8 +170,8 @@ if __name__ == "__main__":
     # Initial values
     tau_propeller = 2 / 4 # Settling time of 2 seconds, divided by 4 to get time constant for first-order systems.
     Kp, Ki, Kd = 35, 2.5, 45
-    h0, r0, b0 = 0.14, 0.856, 0.058
-    k1, k2 = 1.37, 3.96
+    h0, r0, b0 = 0.140, 0.805, 0.103
+    k1, k2 = 0.7, 12.28
 
     # Initial simulation run with default values
     time, setpoint, position_pid, position_adrc, pid_control_signal, adrc_control_signal, disturbance, rmse_pid, rmse_adrc = run_simulation(
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     adrc_r0_slider = Slider(ax_r0, 'ADRC r0', 0.001, 2.0, valinit=r0)
 
     ax_b0 = plt.axes([0.74, 0.6, 0.22, 0.05])
-    adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.001, 0.5, valinit=b0)
+    adrc_b0_slider = Slider(ax_b0, 'ADRC b0', 0.001, 2.5, valinit=b0)
 
     ax_k1 = plt.axes([0.74, 0.55, 0.22, 0.05])
     k1_slider = Slider(ax_k1, 'ADRC k1', 0., 20.0, valinit=k1)
